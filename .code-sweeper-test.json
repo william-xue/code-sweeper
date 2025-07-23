@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "removeUnusedImports": true,
+    "removeUnusedVariables": true,
+    "removeConsoleLog": true,
+    "removeDebugger": true,
+    "formatCode": false,
+    "renameToCamelCase": false
+  },
+  "include": [
+    "test-example.js",
+    "test-complete.jsx"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "src/**"
+  ],
+  "parser": {
+    "typescript": true,
+    "jsx": true,
+    "decorators": true,
+    "classProperties": true
+  }
+}

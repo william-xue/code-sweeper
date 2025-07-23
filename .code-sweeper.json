@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "removeUnusedImports": true,
+    "removeUnusedVariables": true,
+    "removeConsoleLog": true,
+    "removeDebugger": true,
+    "formatCode": false,
+    "renameToCamelCase": false
+  },
+  "include": [
+    "**/*.{js,ts,jsx,tsx,vue}"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "*.min.js"
+  ],
+  "parser": {
+    "typescript": true,
+    "jsx": true,
+    "decorators": true,
+    "classProperties": true
+  }
+}

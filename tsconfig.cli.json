@@ -1,0 +1,60 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "removeComments": false,
+    "noEmitOnError": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "moduleDetection": "force",
+    "verbatimModuleSyntax": false,
+    
+    /* Path mapping */
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    
+    /* Node.js specific */
+    "types": ["node"]
+  },
+  "include": [
+    "src/cli.ts",
+    "src/index.ts",
+    "src/commands/**/*.ts",
+    "src/core/**/*.ts",
+    "src/utils/**/*.ts",
+    "src/types/**/*.ts",
+    "src/config/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.tsx",
+    "src/**/*.jsx",
+    "src/hooks/**/*",
+    "src/components/**/*",
+    "src/pages/**/*",
+    "src/assets/**/*",
+    "src/main.tsx",
+    "src/App.tsx"
+  ],
+  "ts-node": {
+    "esm": true
+  }
+}
