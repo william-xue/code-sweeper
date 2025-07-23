@@ -1,8 +1,19 @@
 {
-  "name": "code-sweeper",
+  "name": "@fe-fast/code-sweeper",
   "version": "1.0.0",
   "description": "A lightweight JavaScript/TypeScript code cleaning tool",
   "type": "module",
+  "keywords": ["typescript", "javascript", "code-cleanup", "ast", "linter", "unused-code", "code-analysis"],
+  "author": "fe-fast",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/william-xue/code-sweeper.git"
+  },
+  "homepage": "https://github.com/william-xue/code-sweeper#readme",
+  "bugs": {
+    "url": "https://github.com/william-xue/code-sweeper/issues"
+  },
   "bin": {
     "code-sweeper": "./dist/cli.js",
     "cs": "./dist/cli.js"
