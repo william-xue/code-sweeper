@@ -16,6 +16,7 @@ Code Sweeper is a tool focused on automatically cleaning redundant code in proje
 - ⚙️ **Flexible Configuration**: Support custom cleanup rules and file filtering
 - 🚀 **Multi-framework Support**: Compatible with Vue, React, and TypeScript projects
 - 📊 **Detailed Reports**: Provide before-and-after cleanup analysis
+- 🔌 **Build Tool Integration**: Support for Webpack, Vite, and Rollup plugins
 
 ## 🚀 Quick Start
 
@@ -29,7 +30,7 @@ npm install -g code-sweeper
 npm install --save-dev code-sweeper
 ```
 
-### Basic Usage
+### Basic Usage (CLI)
 
 ```bash
 # Analyze code issues
@@ -44,6 +45,98 @@ code-sweeper clean
 # Initialize configuration file
 code-sweeper config --init
 ```
+
+## 🔌 Build Tool Integration
+
+For seamless integration into your build process, Code Sweeper provides official plugins for major build tools.
+
+### Installation
+
+```bash
+npm install @fe-fast/code-sweeper --save-dev
+# or
+pnpm add -D @fe-fast/code-sweeper
+# or
+yarn add -D @fe-fast/code-sweeper
+```
+
+### Webpack
+
+```javascript
+// webpack.config.js
+const { CodeSweeperWebpackPlugin } = require('@fe-fast/code-sweeper/webpack');
+
+module.exports = {
+  // ... other configs
+  plugins: [
+    new CodeSweeperWebpackPlugin({
+      // options
+      rules: {
+        removeConsoleLog: process.env.NODE_ENV === 'production',
+      },
+    }),
+  ],
+};
+```
+
+### Vite
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite';
+import codeSweeperPlugin from '@fe-fast/code-sweeper/vite';
+
+export default defineConfig({
+  plugins: [
+    codeSweeperPlugin({
+      rules: {
+        removeConsoleLog: process.env.NODE_ENV === 'production',
+      },
+    }),
+  ],
+});
+```
+
+### Rollup
+
+```javascript
+// rollup.config.js
+import codeSweeperPlugin from '@fe-fast/code-sweeper/rollup';
+
+export default {
+  // ... other configs
+  plugins: [
+    codeSweeperPlugin({
+      rules: {
+        removeConsoleLog: process.env.NODE_ENV === 'production',
+      },
+    }),
+  ],
+};
+```
+
+### Plugin Options
+
+All plugins support the following options:
+
+```typescript
+interface PluginOptions {
+  include?: string[];
+  exclude?: string[];
+  dryRun?: boolean;
+  skipConfirmation?: boolean;
+  rules?: {
+    removeUnusedImports?: boolean;
+    removeUnusedVariables?: boolean;
+    removeConsoleLog?: boolean;
+    removeDebugger?: boolean;
+    formatCode?: boolean;
+    renameToCamelCase?: boolean;
+  };
+}
+```
+
+For more examples, check out the [examples](./examples) directory.
 
 ## 📋 Command Reference
 

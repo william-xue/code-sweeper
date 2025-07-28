@@ -16,6 +16,7 @@ Code Sweeper 是一款专注于自动化清理项目中冗余代码的工具，�
 - ⚙️ **灵活配置**：支持自定义清理规则和文件过滤
 - 🚀 **多框架支持**：兼容 Vue、React、TypeScript 项目
 - 📊 **详细报告**：提供清理前后的对比分析
+- 🔌 **构建工具集成**：支持 Webpack、Vite 和 Rollup 插件
 
 ## 🚀 快速开始
 
@@ -29,7 +30,7 @@ npm install -g code-sweeper
 npm install --save-dev code-sweeper
 ```
 
-### 基本使用
+### 命令行使用
 
 ```bash
 # 分析代码问题
@@ -45,7 +46,108 @@ code-sweeper clean
 code-sweeper config --init
 ```
 
-## 📋 命令详解
+## 🔌 构建工具集成
+
+为了将代码清理无缝集成到您的构建流程中，Code Sweeper 提供了针对主流构建工具的官方插件。
+
+### 安装插件
+
+```bash
+npm install @fe-fast/code-sweeper --save-dev
+# 或
+pnpm add -D @fe-fast/code-sweeper
+# 或
+yarn add -D @fe-fast/code-sweeper
+```
+
+### Webpack
+
+```javascript
+// webpack.config.js
+const { CodeSweeperWebpackPlugin } = require('@fe-fast/code-sweeper/webpack');
+
+module.exports = {
+  // ... 其他配置
+  plugins: [
+    new CodeSweeperWebpackPlugin({
+      // 插件选项
+      rules: {
+        removeConsoleLog: process.env.NODE_ENV === 'production',
+      },
+    }),
+  ],
+};
+```
+
+### Vite
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite';
+import codeSweeperPlugin from '@fe-fast/code-sweeper/vite';
+
+export default defineConfig({
+  plugins: [
+    codeSweeperPlugin({
+      rules: {
+        removeConsoleLog: process.env.NODE_ENV === 'production',
+      },
+    }),
+  ],
+});
+```
+
+### Rollup
+
+```javascript
+// rollup.config.js
+import codeSweeperPlugin from '@fe-fast/code-sweeper/rollup';
+
+export default {
+  // ... 其他配置
+  plugins: [
+    codeSweeperPlugin({
+      rules: {
+        removeConsoleLog: process.env.NODE_ENV === 'production',
+      },
+    }),
+  ],
+};
+```
+
+### 插件选项
+
+所有插件都支持以下配置选项：
+
+```typescript
+interface PluginOptions {
+  // 包含的文件模式
+  include?: string[];
+  
+  // 排除的文件模式
+  exclude?: string[];
+  
+  // 是否为试运行模式（不实际修改文件）
+  dryRun?: boolean;
+  
+  // 是否跳过确认提示
+  skipConfirmation?: boolean;
+  
+  // 清理规则
+  rules?: {
+    removeUnusedImports?: boolean;
+    removeUnusedVariables?: boolean;
+    removeConsoleLog?: boolean;
+    removeDebugger?: boolean;
+    formatCode?: boolean;
+    renameToCamelCase?: boolean;
+  };
+}
+```
+
+更多示例请查看 [examples](./examples) 目录。
+
+## 📋 命令行详解
 
 ### `analyze` - 代码分析
 

@@ -29,6 +29,7 @@ export { defaultConfig } from './config/default.js';
 
 // Utility function for quick cleaning
 export async function cleanCode(options: Partial<CleanOptions> = {}) {
+  console.log('cleanCode received include:', options.include);
   const { CodeCleaner } = await import('./core/CodeCleaner.js');
   const { defaultConfig } = await import('./config/default.js');
   

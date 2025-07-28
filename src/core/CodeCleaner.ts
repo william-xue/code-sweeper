@@ -1,11 +1,12 @@
-import { parse } from '@babel/parser';
+import { parse, type ParserPlugin } from '@babel/parser';
+import { parse as parseVue, compileScript } from '@vue/compiler-sfc';
 import _traverse, { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import _generate from '@babel/generator';
 
 // Handle ES module default import
-const traverse = (_traverse as any).default || _traverse;
-const generate = (_generate as any).default || _generate;
+const traverse = (_traverse as unknown as { default: typeof _traverse }).default || _traverse;
+const generate = (_generate as unknown as { default: typeof _generate }).default || _generate;
 import fs from 'fs-extra';
 import path from 'path';
 import fg from 'fast-glob';
@@ -103,6 +104,7 @@ export class CodeCleaner {
 
   private async getTargetFiles(): Promise<string[]> {
     const patterns = this.options.include;
+    this.logger.info(`Patterns: ${JSON.stringify(patterns)}`);
     const ignore = this.options.exclude;
 
     const files = await fg(patterns, {
@@ -122,15 +124,40 @@ export class CodeCleaner {
   }
 
   private async analyzeFile(filePath: string): Promise<FileAnalysis> {
+    const isVueFile = path.extname(filePath) === '.vue';
+    
     const content = await fs.readFile(filePath, 'utf-8');
-    const stats = await fs.stat(filePath);
+    let scriptContent = content;
+
+    if (isVueFile) {
+      const { descriptor } = parseVue(content);
+      if (descriptor.script || descriptor.scriptSetup) {
+        const compiled = compileScript(descriptor, { id: filePath });
+        scriptContent = compiled.content;
+      } else {
+        scriptContent = '';
+      }
+    }
+
+    if (!scriptContent.trim()) {
+      return {
+        path: filePath,
+        size: content.length,
+        issues: [],
+
+        issueCount: 0,
+
+        linesOfCode: content.split('\n').length,
+      };
+    }
+
     
     const issues: CodeIssue[] = [];
     const imports: ImportInfo[] = [];
     const variables: VariableInfo[] = [];
 
     try {
-      const ast = this.parseFile(content, filePath);
+      const ast = this.parseFile(scriptContent, filePath);
       
       // Analyze AST
       traverse(ast, {
@@ -216,16 +243,20 @@ export class CodeCleaner {
       path: filePath,
       issueCount: issues.length,
       issues,
-      size: stats.size,
+      size: content.length,
       linesOfCode: content.split('\n').length
     };
   }
 
-  private parseFile(content: string, filePath: string) {
-    const isTypeScript = /\.(ts|tsx)$/.test(filePath);
+  private parseFile(content: string, filePath: string): t.File {
+    const isVueFile = path.extname(filePath) === '.vue';
+    const isTypeScript = /\.(ts|tsx)$/.test(filePath) || (isVueFile && /lang=['"]ts['"]/.test(content));
     const isJSX = /\.(jsx|tsx)$/.test(filePath) || /<[A-Za-z]/.test(content); // Auto-detect JSX
     
-    const plugins: any[] = [];
+                const plugins: ParserPlugin[] = [
+      'typescript',
+      'jsx'
+    ];
     
     if (isTypeScript) {
       plugins.push('typescript');
@@ -275,13 +306,13 @@ export class CodeCleaner {
     };
   }
 
-  private analyzeVariable(node: t.VariableDeclarator, path: any): VariableInfo {
+  private analyzeVariable(node: t.VariableDeclarator, path: NodePath<t.VariableDeclarator>): VariableInfo {
     const name = t.isIdentifier(node.id) ? node.id.name : 'unknown';
     
     return {
       name,
       type: 'variable',
-      scope: path.scope.uid,
+            scope: path.scope.uid.toString(),
       node: {
         type: node.type,
         start: node.start || 0,
@@ -300,15 +331,32 @@ export class CodeCleaner {
   }
 
   private async cleanFile(filePath: string): Promise<{ modified: boolean; issuesFixed: number; linesRemoved: number }> {
+        const isVueFile = path.extname(filePath) === '.vue';
     const content = await fs.readFile(filePath, 'utf-8');
-    const originalLines = content.split('\n').length;
+    let scriptContent = content;
+
+    if (isVueFile) {
+      const { descriptor } = parseVue(content);
+      if (descriptor.script || descriptor.scriptSetup) {
+        const compiled = compileScript(descriptor, { id: filePath });
+        scriptContent = compiled.content;
+
+      } else {
+        scriptContent = '';
+      }
+    }
+
+    if (!scriptContent.trim()) {
+      return { modified: false, issuesFixed: 0, linesRemoved: 0 };
+    }
+    const originalLines = scriptContent.split('\n').length;
     
-    let modifiedContent = content;
+    let modifiedScript = scriptContent;
     let issuesFixed = 0;
 
     try {
-      const ast = this.parseFile(content, filePath);
-      const nodesToRemove: any[] = [];
+      const ast = this.parseFile(scriptContent, filePath);
+            const nodesToRemove: (t.Node | null | undefined)[] = [];
 
       traverse(ast, {
         ImportDeclaration: (path: NodePath<t.ImportDeclaration>) => {
@@ -337,9 +385,8 @@ export class CodeCleaner {
         }
       });
 
-      // Remove nodes (simplified - in real implementation would use proper AST transformation)
       if (nodesToRemove.length > 0) {
-        modifiedContent = this.removeNodesFromContent(content, nodesToRemove);
+        modifiedScript = this.removeNodesFromContent(scriptContent, nodesToRemove);
       }
 
     } catch (error) {
@@ -347,18 +394,33 @@ export class CodeCleaner {
       return { modified: false, issuesFixed: 0, linesRemoved: 0 };
     }
 
-    const modified = modifiedContent !== content;
-    if (modified && !this.options.dryRun) {
-      await fs.writeFile(filePath, modifiedContent, 'utf-8');
+    const modified = modifiedScript !== scriptContent;
+    let finalContent = content;
+
+    if (modified && isVueFile) {
+        const { descriptor } = parseVue(content);
+        if (descriptor.script) {
+            const scriptTagContent = descriptor.script.content;
+            finalContent = content.replace(scriptTagContent, modifiedScript);
+        } else if (descriptor.scriptSetup) {
+            const scriptTagContent = descriptor.scriptSetup.content;
+            finalContent = content.replace(scriptTagContent, modifiedScript);
+        }
+    } else if (modified) {
+        finalContent = modifiedScript;
     }
 
-    const newLines = modifiedContent.split('\n').length;
+    if (modified && !this.options.dryRun) {
+      await fs.writeFile(filePath, finalContent, 'utf-8');
+    }
+
+    const newLines = finalContent.split('\n').length;
     const linesRemoved = originalLines - newLines;
 
     return { modified, issuesFixed, linesRemoved };
   }
 
-  private isUnusedImport(node: t.ImportDeclaration, ast: any): boolean {
+  private isUnusedImport(node: t.ImportDeclaration, ast: t.File): boolean {
     if (!node.specifiers || node.specifiers.length === 0) {
       return false; // Side-effect imports should not be removed
     }
@@ -379,13 +441,13 @@ export class CodeCleaner {
     // Check if any imported name is used in the code
     let isUsed = false;
     traverse(ast, {
-      Identifier(path: any) {
+      Identifier(path: NodePath<t.Identifier>) {
         if (path.isReferencedIdentifier() && importedNames.has(path.node.name)) {
           isUsed = true;
           path.stop();
         }
       },
-      JSXIdentifier(path: any) {
+      JSXIdentifier(path: NodePath<t.JSXIdentifier>) {
         if (importedNames.has(path.node.name)) {
           isUsed = true;
           path.stop();
@@ -396,7 +458,7 @@ export class CodeCleaner {
     return !isUsed;
   }
 
-  private isUnusedVariable(node: t.VariableDeclarator, path: any): boolean {
+  private isUnusedVariable(node: t.VariableDeclarator, path: NodePath<t.VariableDeclarator>): boolean {
     if (!t.isIdentifier(node.id)) {
       return false; // Skip destructuring patterns for now
     }
@@ -414,7 +476,7 @@ export class CodeCleaner {
     return binding.references === 0;
   }
 
-  private removeNodesFromContent(content: string, nodes: any[]): string {
+  private removeNodesFromContent(content: string, nodes: (t.Node | null | undefined)[]): string {
     if (nodes.length === 0) return content;
 
     try {
@@ -422,8 +484,8 @@ export class CodeCleaner {
       let modified = false;
 
       // Helper function to match nodes by position
-      const matchesNode = (currentNode: any, targetNode: any) => {
-        return currentNode.start === targetNode.start && 
+      const matchesNode = (currentNode: t.Node, targetNode: t.Node | null | undefined) => {
+        return targetNode && currentNode.start === targetNode.start && 
                currentNode.end === targetNode.end &&
                currentNode.type === targetNode.type;
       };
