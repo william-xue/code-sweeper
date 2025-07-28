@@ -1,6 +1,6 @@
 {
   "name": "@fe-fast/code-sweeper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A lightweight JavaScript/TypeScript code cleaning tool",
   "type": "module",
   "keywords": [
